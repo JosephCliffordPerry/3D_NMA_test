@@ -17,50 +17,30 @@ coordinates <- sapply(coord_strings, function(coord_string) {
 })
 
 tcoordinates<-as.data.frame(t(coordinates))
-
-
-
-    n <- nrow(tcoordinates)
-  result_matrix <- matrix(NA, nrow = n, ncol = n)
-
-  for (i in 1:(n - 1)) {
-    for (j in (i + 1):n) {
-      # Extract the vectors from the data frame
-      char1 <- tcoordinates[i,]
-      char2 <- tcoordinates[j,]
-
-
-
-      result_matrix[i, j] <- euclidean_distance(char1, char2)
-
-      # result_matrix[j - 1, i - 1] <- rand_idx
-      # Print progress
-      cat("Calculated hamming distance", i, "vs", j, "\n")
-    }}
-
-
-  give_featureidentities <- function(result_matrix) {
-    result_df <- as.data.frame(result_matrix)
-    groupinglist <- list()
-    # Create a logical matrix for each condition
-    condition_1 <- result_matrix <= 50
-   grouping <- which(condition_1, arr.ind = TRUE)
-
-    return(grouping)
-  }
-table<-give_featureidentities(result_matrix = result_matrix)
 dataid<-data
-for (i in nrow(table):1) {
-combo<-table[i,]
-dataid[combo["row"],3]<-dataid[combo["col"],3]
+#############################
+#optimised euclidian distance fuzzy clusterer
+cellpos<-1
+max_cells_per_field <- 25
+celldistthreshold<- 50
+while(length(unique(dataid$CellID))>max_cells_per_field){
+  for (i in 1:nrow(tcoordinates)) {
+    testcell<-tcoordinates[cellpos,]
+    othercell<-tcoordinates[i,]
+    celldist<- euclidean_distance(testcell, othercell)
+    if (celldist < celldistthreshold){
+      dataid[i,3]<-dataid[cellpos,3]
+
+    }
+  }
+  cellpos <- cellpos + 1
 }
+
 cellnum<-unique(dataid$CellID)
 #gives each cell comparable arbitrary Z values
 dataz <- dataid %>%
   group_by(CellID) %>%
   mutate(ConsecutiveID = row_number())
-
-
 
 # Scale and add Z index columns to data
 # Number of columns with names starting with "Outline_Orientated_coordinates_X_"
@@ -68,7 +48,8 @@ num_cols <- sum(grepl("Outline_OrientedCoordinates_X_", names(dataz)))
 for (i in 0:(num_cols-1)){
   dataz[(paste0("Outline_OrientedCoordinates_Z_",i))] <- dataz$ConsecutiveID * 1.38
 }
-
+##### This is the step where the orientation should be reassesed
+#####
 #initialise list
 cellpointarray<-list()
 #make point cloud arrays for each cell
@@ -87,32 +68,5 @@ cellpointarray[[i]]<- df
 }
 df<- cellpointarray[[7]]
 plot3d(x = df[,1],y = df[,2],z =  df[,3],type = "p", col = "blue", size = 3)
-
-
-#############################
-#optimised euclidian distance fuzzy clusterer
-cellpos<-1
-max_cells_per_field <- 30
-celldistthreshold<- 50
-while(length(unique(dataid$CellID))>max_cells_per_field){
- for (i in 1:nrow(tcoordinates)) {
-   testcell<-tcoordinates[cellpos,]
-   othercell<-tcoordinates[i,]
-   celldist<- euclidean_distance(testcell, othercell)
-   if (celldist < celldistthreshold){
-     dataid[i,3]<-dataid[cellpos,3]
-
-   }
- }
-  cellpos <- cellpos + 1
-}
-
-
-
-cellnum<-unique(dataid$CellID)
-#gives each cell comparable arbitrary Z values
-dataz <- dataid %>%
-  group_by(CellID) %>%
-  mutate(ConsecutiveID = row_number())
 
 
